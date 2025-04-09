@@ -211,6 +211,35 @@ class FilesRepository(AbstractRepository):
             except sqlite3.Error:
                 return False
 
+    def cleanup_missing_files_sync(self, existing_files: List[str]) -> int:
+        """
+        Remove database records for files that no longer exist on disk.
+
+        Args:
+            existing_files: List of file names that exist on disk
+
+        Returns:
+            Number of records removed
+        """
+        with self._get_db_connection() as conn:
+            try:
+                # Convert list to comma-separated string of quoted values
+                if existing_files:
+                    placeholders = ','.join(['?' for _ in existing_files])
+                    query = f"""
+                    DELETE FROM user_files 
+                    WHERE file_name NOT IN ({placeholders})
+                    """
+                    cursor = conn.execute(query, existing_files)
+                else:
+                    # If no files exist, clear the entire table
+                    cursor = conn.execute("DELETE FROM user_files")
+
+                conn.commit()
+                return cursor.rowcount
+            except sqlite3.Error:
+                return 0
+
     async def create_file(self, file: FileItem) -> bool:
         return await self._run_in_thread(self.create_file_sync, file)
 

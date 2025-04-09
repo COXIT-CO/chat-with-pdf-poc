@@ -24,7 +24,7 @@ DATE_FMT = '%Y%m%d %H:%M:%S'
 EXCLUDED_FILENAMES = [
     '_base_client.py',
     '_trace.py',
-    ''
+    'inotify_buffer.py',
 ]
 
 

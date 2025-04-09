@@ -1,8 +1,10 @@
-from typing import Literal, List, Optional
+import asyncio
+
+from typing import Literal, List
+from dataclasses import dataclass
 
 from openai import OpenAI
 from openai.types.file_object import FileObject
-from dataclasses import dataclass
 
 from core.logger import warn
 
@@ -74,3 +76,47 @@ def file_delete(client: OpenAI, file_id: str):
     """
     response = client.files.delete(file_id=file_id)
     return response
+
+
+# Async wrappers for file operations
+
+async def async_files_list(client: OpenAI, limit=1_000) -> List[FileObject]:
+    """
+    Async wrapper for listing all files available in the OpenAI API.
+
+    Args:
+        client: OpenAI client instance
+        limit: Maximum number of files to retrieve per request (default: 1,000)
+
+    Returns:
+        List of FileObject instances representing all available files.
+    """
+    return await asyncio.to_thread(files_list, client, limit)
+
+
+async def async_file_upload(client: OpenAI, file: FileUpload) -> FileObject:
+    """
+    Async wrapper for uploading a file to the OpenAI API.
+
+    Args:
+        client: OpenAI client instance
+        file: FileUpload object containing the file data and metadata
+
+    Returns:
+        FileObject instance representing the uploaded file.
+    """
+    return await asyncio.to_thread(file_upload, client, file)
+
+
+async def async_file_delete(client: OpenAI, file_id: str):
+    """
+    Async wrapper for deleting a file from OpenAI.
+
+    Args:
+        client: The OpenAI client instance
+        file_id: The ID of the file to delete
+
+    Returns:
+        The deletion status response
+    """
+    return await asyncio.to_thread(file_delete, client, file_id)

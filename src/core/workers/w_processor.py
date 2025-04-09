@@ -1,6 +1,5 @@
-import asyncio
-import hashlib
 import json
+import asyncio
 import threading
 
 from pathlib import Path
@@ -8,18 +7,19 @@ from typing import Optional, Tuple, List, Dict, Any, Set
 
 from pydantic import BaseModel
 from openai import OpenAI
+from more_itertools import chunked
 
 from core.globals import FILES_DIR
 from core.logger import info, error, exception
-from core.repositories.repo_files import FilesRepository
+from core.repositories.repo_files import FilesRepository, FileItem
 from core.workers.w_abstract import Worker
-from core.workers.w_utils import jsonl_reader, generate_content_hash, generate_paragraph_id
-from openai_wrappers.api_files import files_list, FileUpload, file_upload, file_delete
+from core.workers.w_utils import jsonl_reader, generate_paragraph_id, \
+    generate_vector_store_file_name, generate_hashed_filename
+from openai_wrappers.api_files import files_list, FileUpload, async_file_upload
 from openai_wrappers.api_vector_store import (
     vector_stores_list, VectorStoreCreate, vector_store_create,
     vector_store_files_list, VectorStoreFilesList,
-    vector_store_file_create, VectorStoreFileCreate,
-    vector_store_file_delete
+    VectorStoreFileCreate, async_vector_store_file_create
 )
 
 
@@ -28,26 +28,6 @@ class ParagraphData(BaseModel):
     section_number: Optional[str] = None
     paragraph_text: str
     paragraph_box: Tuple[float, float, float, float]
-
-
-def generate_hashed_filename(
-        base_name: str,
-        content: str,
-        extension: str
-) -> str:
-    """
-    Generate a filename using a hash of the base_name and content to ensure uniqueness.
-
-    Args:
-        base_name: The base name of the file
-        content: The content to hash (typically paragraph text)
-        extension: The file extension including the dot
-
-    Returns:
-        A unique filename with format {base_name}_{hash}{extension}
-    """
-    content_hash = generate_content_hash(content, base_name)
-    return f"{base_name}_{content_hash}{extension}"
 
 
 def worker(
@@ -90,7 +70,7 @@ def worker(
         while not stop_event.is_set():
             process_files = get_files_to_process(files_repository)
             if not process_files:
-                stop_event.wait(30)
+                stop_event.wait(3)
                 continue
 
             openai_resources = get_openai_resources(client)
@@ -100,14 +80,15 @@ def worker(
             openai_files_list, openai_vector_stores = openai_resources
 
             for file in process_files:
-                process_single_file(client, file, files_repository, openai_files_list, openai_vector_stores)
+                # todo: execute in parallel when needed
+                process_single_file(loop, client, file, files_repository, openai_files_list, openai_vector_stores)
 
-            stop_event.wait(5)
+            stop_event.wait(1)
     finally:
         loop.close()
 
 
-def get_files_to_process(files_repository: FilesRepository) -> List[Any]:
+def get_files_to_process(files_repository: FilesRepository) -> List[FileItem]:
     """Get files that need processing from the repository."""
     return files_repository.get_files_by_filter_sync(
         "processing_status IN (?, ?)",
@@ -127,15 +108,16 @@ def get_openai_resources(client: OpenAI) -> Optional[Tuple[List[Any], List[Any]]
 
 
 def process_single_file(
+        loop: asyncio.AbstractEventLoop,
         client: OpenAI,
-        file: Any,
+        file: FileItem,
         files_repository: FilesRepository,
         openai_files_list: List[Any],
         openai_vector_stores: List[Any]
 ) -> None:
     """Process a single file through the entire pipeline."""
+    info(f"Processing file: {file.file_name_orig} STATUS={file.processing_status}")
     file.processing_status = "processing"
-    info(f"Processing file: {file.file_name_orig}")
 
     jsonl_file_path = get_jsonl_file_path(file)
     if not jsonl_file_path or not jsonl_file_path.is_file():
@@ -159,6 +141,7 @@ def process_single_file(
 
     # Process paragraphs
     process_file_paragraphs(
+        loop,
         client,
         file,
         jsonl_file_path,
@@ -168,14 +151,6 @@ def process_single_file(
         files_repository
     )
 
-    # Update vector store files after new files are added
-    vector_store_files = get_vector_store_files(client, vector_store)
-    if vector_store_files is None:
-        return
-
-    # Clean up files that exist in vector store but not in disk content
-    cleanup_orphaned_files(client, vector_store, vector_store_files, expected_filenames)
-
     if file.processing_status != "incomplete":
         file.processing_status = "complete"
         files_repository.update_file_sync(file.file_name, file)
@@ -183,13 +158,13 @@ def process_single_file(
     info(f"{file.processing_status}; File {file.file_name}")
 
 
-def get_jsonl_file_path(file: Any) -> Path:
+def get_jsonl_file_path(file: FileItem) -> Path:
     """Get the path to the JSONL file for a given file."""
     file_path: Path = FILES_DIR.joinpath(file.file_name)
     return file_path.with_suffix('.jsonl')
 
 
-def mark_file_as_error(file: Any, files_repository: FilesRepository, error_message: str) -> None:
+def mark_file_as_error(file: FileItem, files_repository: FilesRepository, error_message: str) -> None:
     """Mark a file as having an error in processing."""
     file.processing_status = error_message
     files_repository.update_file_sync(file.file_name, file)
@@ -197,15 +172,16 @@ def mark_file_as_error(file: Any, files_repository: FilesRepository, error_messa
 
 def ensure_vector_store_exists(
         client: OpenAI,
-        file: Any,
+        file: FileItem,
         files_repository: FilesRepository,
         openai_vector_stores: List[Any]
 ) -> Optional[Any]:
     """Ensure a vector store exists for the file, creating one if needed."""
-    vector_store = next((s for s in openai_vector_stores if s.name == file.file_name), None)
+    vs_file_name = generate_vector_store_file_name(file)
+    vector_store = next((s for s in openai_vector_stores if s.name == vs_file_name), None)
     if not vector_store:
         payload = VectorStoreCreate(
-            name=file.file_name
+            name=vs_file_name
         )
         try:
             vector_store = vector_store_create(client, payload)
@@ -254,38 +230,8 @@ def generate_expected_filenames(
     return expected_filenames
 
 
-def cleanup_orphaned_files(
-        client: OpenAI,
-        vector_store: Any,
-        vector_store_files: List[Any],
-        expected_filenames: Set[str]
-) -> None:
-    """Delete files that exist in vector store but not in disk content."""
-    for vs_file in vector_store_files:
-        # Get the filename from the OpenAI file object
-        try:
-            # Find the corresponding file in OpenAI files
-            openai_file = client.files.retrieve(file_id=vs_file.id)
-            filename = openai_file.filename
-
-            if filename not in expected_filenames:
-                info(f"Deleting orphaned file from vector store: {filename} (ID: {vs_file.id})")
-
-                try:
-                    # First delete from vector store
-                    vector_store_file_delete(client, vector_store.id, vs_file.id)
-                    info(f"Successfully removed file {filename} from vector store {vector_store.id}")
-
-                    # Then delete the file itself
-                    file_delete(client, vs_file.id)
-                    info(f"Successfully deleted file {filename} (ID: {vs_file.id})")
-                except Exception as e:
-                    error(f"Error deleting orphaned file {filename} (ID: {vs_file.id}): {str(e)}")
-        except Exception as e:
-            error(f"Error retrieving file info for ID {vs_file.id}: {str(e)}")
-
-
 def process_file_paragraphs(
+        loop: asyncio.AbstractEventLoop,
         client: OpenAI,
         file: Any,
         jsonl_file_path: Path,
@@ -294,29 +240,39 @@ def process_file_paragraphs(
         vector_store_files: List[Any],
         files_repository: FilesRepository
 ) -> None:
-    """Process all paragraphs in a file."""
+    """Process all paragraphs in a file in batches of 10 concurrently."""
+
     base_name = Path(file.file_name_orig).stem
     extension = Path(file.file_name).suffix
 
-    for (idx, data_dict) in enumerate(jsonl_reader(jsonl_file_path)):
-        try:
-            process_paragraph(
-                client,
-                data_dict,
-                base_name,
-                extension,
-                openai_files_list,
-                vector_store,
-                vector_store_files
-            )
-        except Exception as e:
-            exception(f"Error uploading file:\n{file}\n{str(e)}")
-            file.processing_status = "incomplete"
-            files_repository.update_file_sync(file.file_name, file)
-            break
+    try:
+
+        # Process in batches of 10
+        for batch in chunked(jsonl_reader(jsonl_file_path), 10):
+
+            # Create tasks for concurrent execution
+            tasks = []
+            for data_dict in batch:
+                tasks.append(process_paragraph(
+                    client,
+                    data_dict,
+                    base_name,
+                    extension,
+                    openai_files_list,
+                    vector_store,
+                    vector_store_files
+                ))
+
+            # Execute batch concurrently
+            loop.run_until_complete(asyncio.gather(*tasks))
+
+    except Exception as e:
+        exception(f"Error processing paragraphs:\n{file}\n{str(e)}")
+        file.processing_status = "incomplete"
+        files_repository.update_file_sync(file.file_name, file)
 
 
-def process_paragraph(
+async def process_paragraph(
         client: OpenAI,
         data_dict: Dict[str, Any],
         base_name: str,
@@ -329,11 +285,11 @@ def process_paragraph(
     para = ParagraphData(**data_dict)
     filename = generate_hashed_filename(base_name, para.paragraph_text, extension)
 
-    file_data = upload_paragraph_if_needed(client, para, filename, openai_files_list)
+    file_data = await upload_paragraph_if_needed(client, para, filename, openai_files_list)
     if not file_data:
         return
 
-    add_to_vector_store_if_needed(
+    await add_to_vector_store_if_needed(
         client,
         para,
         filename,
@@ -343,7 +299,7 @@ def process_paragraph(
     )
 
 
-def upload_paragraph_if_needed(
+async def upload_paragraph_if_needed(
         client: OpenAI,
         para: ParagraphData,
         filename: str,
@@ -359,7 +315,7 @@ def upload_paragraph_if_needed(
                 filename,
                 "assistants"
             )
-            file_data = file_upload(client, file2upload)
+            file_data = await async_file_upload(client, file2upload)
             info(f"OK -- file uploaded: {filename} with file_id: {file_data.id}")
         except Exception as e:
             error(f"Error uploading file {filename}: {str(e)}")
@@ -370,7 +326,7 @@ def upload_paragraph_if_needed(
     return file_data
 
 
-def add_to_vector_store_if_needed(
+async def add_to_vector_store_if_needed(
         client: OpenAI,
         para: ParagraphData,
         filename: str,
@@ -382,35 +338,36 @@ def add_to_vector_store_if_needed(
     chunking_strategy = None  # todo: implement
 
     vector_store_file = next((f for f in vector_store_files if f.id == file_data.id), None)
-    if not vector_store_file:
-        info(f"Adding File {filename} to vector store {vector_store.id}")
-
-        paragraph_id = generate_paragraph_id(para.paragraph_text)
-
-        attributes = {
-            "page_n": para.page_n,
-            "paragraph_id": paragraph_id,
-            "paragraph_box": json.dumps(list(para.paragraph_box)),
-        }
-
-        if para.section_number:
-            attributes["section_number"] = para.section_number
-
-        try:
-            vector_store_file = vector_store_file_create(
-                client,
-                VectorStoreFileCreate(
-                    vector_store_id=vector_store.id,
-                    file_id=file_data.id,
-                    attributes=attributes,
-                    chunking_strategy=chunking_strategy,
-                )
-            )
-            info(f"OK -- File {filename} added to vector store {vector_store.id} with id: {vector_store_file.id}")
-        except Exception as e:
-            error(f"Error adding file {filename} to vector store: {str(e)}")
-    else:
+    if vector_store_file:
         info(f"File {filename} already exists in vector store {vector_store.id}")
+        return
+
+    info(f"Adding File {filename} to vector store {vector_store.id}")
+
+    paragraph_id = generate_paragraph_id(para.paragraph_text)
+
+    attributes = {
+        "page_n": para.page_n,
+        "paragraph_id": paragraph_id,
+        "paragraph_box": json.dumps(list(para.paragraph_box)),
+    }
+
+    if para.section_number:
+        attributes["section_number"] = para.section_number
+
+    try:
+        vector_store_file = await async_vector_store_file_create(
+            client,
+            VectorStoreFileCreate(
+                vector_store_id=vector_store.id,
+                file_id=file_data.id,
+                attributes=attributes,
+                chunking_strategy=chunking_strategy,
+            )
+        )
+        info(f"OK -- File {filename} added to vector store {vector_store.id} with id: {vector_store_file.id}")
+    except Exception as e:
+        error(f"Error adding file {filename} to vector store: {str(e)}")
 
 
 def spawn_worker(

@@ -43,7 +43,7 @@ def worker(
     while not stop_event.is_set():
         process_files = stats_repository.get_files_by_filter_sync("processing_status = ?", ("",))
         if not process_files:
-            stop_event.wait(30)
+            stop_event.wait(3)
             continue
 
         for file in process_files:
@@ -76,7 +76,7 @@ def worker(
             stats_repository.update_file_sync(file.file_name, file)
             info(f"Extracting file {file.file_name_orig} OK")
 
-        stop_event.wait(5)
+        stop_event.wait(1)
 
 
 def spawn_worker(

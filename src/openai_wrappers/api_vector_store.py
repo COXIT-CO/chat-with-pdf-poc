@@ -1,3 +1,4 @@
+import asyncio
 from typing import List, Optional, Dict, Union, Any, Literal
 
 from openai import OpenAI
@@ -56,22 +57,22 @@ class VectorStoreSearchRespItem(BaseModel):
     attributes: Optional[Dict[str, Any]] = None
 
 
-def vector_store_create(client, data: VectorStoreCreate):
+def vector_store_create(client: OpenAI, data: VectorStoreCreate):
     vector_store = client.vector_stores.create(**data.model_dump(exclude_none=True))
     return vector_store
 
 
-def vector_stores_list(client):
+def vector_stores_list(client: OpenAI):
     vector_stores = client.vector_stores.list()
     return vector_stores
 
 
-def vector_store_retrieve(client, vector_store_id: str):
+def vector_store_retrieve(client: OpenAI, vector_store_id: str):
     vector_store = client.vector_stores.retrieve(vector_store_id=vector_store_id)
     return vector_store
 
 
-def vector_store_file_create(client, data: VectorStoreFileCreate):
+def vector_store_file_create(client: OpenAI, data: VectorStoreFileCreate):
     vector_store_id = data.vector_store_id
     params = data.model_dump(exclude={"vector_store_id"}, exclude_none=True)
 
@@ -82,7 +83,7 @@ def vector_store_file_create(client, data: VectorStoreFileCreate):
     return vector_store_file
 
 
-def vector_store_files_list(client, data: VectorStoreFilesList):
+def vector_store_files_list(client: OpenAI, data: VectorStoreFilesList):
     files = list(client.vector_stores.files.list(
         vector_store_id=data.vector_store_id,
         limit=data.limit
@@ -106,7 +107,7 @@ def vector_store_files_list(client, data: VectorStoreFilesList):
     return files
 
 
-def vector_store_file_delete(client, vector_store_id: str, file_id: str):
+def vector_store_file_delete(client: OpenAI, vector_store_id: str, file_id: str):
     """
     Delete a file from a vector store.
 
@@ -156,3 +157,45 @@ async def vector_store_search(
             text = f"Error searching vector store: {error_text}"
             error(text)
             raise Exception(text)
+
+
+# Async wrappers for synchronous functions
+
+async def async_vector_store_create(client: OpenAI, data: VectorStoreCreate):
+    """Async wrapper for vector_store_create"""
+    return await asyncio.to_thread(vector_store_create, client, data)
+
+
+async def async_vector_stores_list(client: OpenAI):
+    """Async wrapper for vector_stores_list"""
+    return await asyncio.to_thread(vector_stores_list, client)
+
+
+async def async_vector_store_retrieve(client: OpenAI, vector_store_id: str):
+    """Async wrapper for vector_store_retrieve"""
+    return await asyncio.to_thread(vector_store_retrieve, client, vector_store_id)
+
+
+async def async_vector_store_file_create(client: OpenAI, data: VectorStoreFileCreate):
+    """Async wrapper for vector_store_file_create"""
+    return await asyncio.to_thread(vector_store_file_create, client, data)
+
+
+async def async_vector_store_files_list(client: OpenAI, data: VectorStoreFilesList):
+    """Async wrapper for vector_store_files_list"""
+    return await asyncio.to_thread(vector_store_files_list, client, data)
+
+
+async def async_vector_store_file_delete(client: OpenAI, vector_store_id: str, file_id: str):
+    """
+    Async wrapper for vector_store_file_delete.
+
+    Args:
+        client: The OpenAI client instance
+        vector_store_id: The ID of the vector store
+        file_id: The ID of the file to delete
+
+    Returns:
+        The deleted vector store file object
+    """
+    return await asyncio.to_thread(vector_store_file_delete, client, vector_store_id, file_id)
