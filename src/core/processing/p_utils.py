@@ -1,11 +1,48 @@
 import hashlib
+import string
+import random
 
-from typing import Iterator, Dict
+from typing import Iterator, Dict, List, Optional
 from pathlib import Path
 
 import ujson as json
 
-from core.repositories.repo_files import FileItem
+from core.logger import exception
+from core.repositories.repo_files import FileItem, FilesRepository
+from telemetry.aggregations.requests_stats import RequestStats, aggr_requests_stats
+from telemetry.models import RequestResult
+
+
+def try_aggr_requests_stats(reqs: List[RequestResult]) -> Optional[RequestStats]:
+    try:
+        return aggr_requests_stats(reqs)
+    except Exception as e:
+        exception(e)
+        return
+
+
+def get_files_to_process(files_repository: FilesRepository) -> List[FileItem]:
+    """Get files that need processing from the repository."""
+    return files_repository.get_files_by_filter_sync(
+        "processing_status IN (?, ?)",
+        ("extracted", "incomplete")
+    )
+
+
+def reset_stuck_files(files_repository: FilesRepository) -> None:
+    """
+    Reset any files stuck in 'processing' status to 'incomplete'.
+
+    Args:
+        files_repository: Repository for accessing and updating file data
+    """
+    processing_files = files_repository.get_files_by_filter_sync(
+        "processing_status IN (?)",
+        ("processing",)
+    )
+    for file in processing_files:
+        file.processing_status = "incomplete"
+        files_repository.update_file_sync(file.file_name, file)
 
 
 def jsonl_reader(file: Path) -> Iterator[Dict]:
@@ -16,15 +53,18 @@ def jsonl_reader(file: Path) -> Iterator[Dict]:
 
 def generate_paragraph_id(paragraph_text: str) -> str:
     """
-    Generate a unique paragraph ID based on the paragraph text.
+    Generate a unique paragraph ID based on the paragraph text with added randomness.
 
     Args:
         paragraph_text: The text of the paragraph
 
     Returns:
-        A unique paragraph ID with format pid-{hash}
+        A unique paragraph ID with format pid-{hash}-{random}
     """
-    return f"pid-{generate_content_hash(paragraph_text, length=8)}"
+    # Generate a random string of 4 characters
+    random_suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=4))
+    # Combine content hash with random suffix
+    return f"pid-{generate_content_hash(paragraph_text, length=6)}-{random_suffix}"
 
 
 def generate_content_hash(content: str, salt: str = "", length: int = 16) -> str:

@@ -1,6 +1,7 @@
 import threading
 
 from core.processing.openai_fs.worker import p_openai_fs_worker
+from core.processing.local_fs.worker import p_local_fs_worker
 from core.repositories.repo_files import FilesRepository
 from core.workers.w_abstract import Worker
 
@@ -13,6 +14,8 @@ def spawn_worker(
 
     if p_strategy == "openai_fs":
         worker = p_openai_fs_worker
+    elif p_strategy == "local_fs":
+        worker = p_local_fs_worker
     else:
         raise ValueError(f"Unknown P_STRATEGY: {p_strategy}")
 

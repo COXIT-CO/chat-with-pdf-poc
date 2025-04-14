@@ -39,7 +39,7 @@ SYSTEM = """TOOL: search_in_doc
           
         search_in_doc produces:
         * pieces of text containing relevant information that will help you to answer user's question in a format:
-          {"text": "text", "id": "pid-12345678"}
+          {"text": "text", "id": "pid-12345678-1234"}
           
         When using text for composing answer, obligatory refer to id after piece of generated answer.
         Example:

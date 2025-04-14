@@ -9,19 +9,12 @@ from openai import OpenAI
 from core.logger import error
 from core.processing.openai_fs.process_file import process_single_file
 from core.processing.p_models import WorkerContext
+from core.processing.p_utils import get_files_to_process, reset_stuck_files
 from core.repositories.repo_files import FilesRepository, FileItem
 from openai_wrappers.api_files import files_list
 from openai_wrappers.api_vector_store import vector_stores_list
 from telemetry.models import TelemetryScope, TeleWProcessor, TeleItemStatus
 from telemetry.tele_writer import TeleWriter
-
-
-def get_files_to_process(files_repository: FilesRepository) -> List[FileItem]:
-    """Get files that need processing from the repository."""
-    return files_repository.get_files_by_filter_sync(
-        "processing_status IN (?, ?)",
-        ("extracted", "incomplete")
-    )
 
 
 def get_openai_resources(client: OpenAI) -> Tuple[List[Any], List[Any]]:
@@ -67,13 +60,7 @@ def p_openai_fs_worker(
         files_repository=files_repository
     )
 
-    processing_files = files_repository.get_files_by_filter_sync(
-        "processing_status IN (?)",
-        ("processing",)
-    )
-    for file in processing_files:
-        file.processing_status = "incomplete"
-        files_repository.update_file_sync(file.file_name, file)
+    reset_stuck_files(ctx.files_repository)
 
     try:
         while not stop_event.is_set():
