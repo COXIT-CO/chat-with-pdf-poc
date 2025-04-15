@@ -7,18 +7,9 @@ from core.logger import error, exception
 from core.processing.openai_fs.const import SEMAPHORE_LIMIT
 from core.processing.openai_fs.uploads import upload_paragraph_if_needed, add_to_vector_store_if_needed
 from core.processing.p_models import WorkerContext, ParagraphData
-from core.processing.p_utils import generate_hashed_filename, jsonl_reader
+from core.processing.p_utils import generate_hashed_filename, jsonl_reader, try_aggr_requests_stats
 from core.repositories.repo_files import FileItem
 from telemetry.models import RequestResult, RequestStatus, TeleWProcessor, TeleItemStatus
-from telemetry.aggregations.requests_stats import aggr_requests_stats, RequestStats
-
-
-def try_aggr_requests_stats(reqs: List[RequestResult]) -> Optional[RequestStats]:
-    try:
-        return aggr_requests_stats(reqs)
-    except Exception as e:
-        exception(e)
-        return
 
 
 async def process_file_paragraphs(

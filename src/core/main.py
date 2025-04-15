@@ -2,7 +2,7 @@ import asyncio
 
 import uvloop
 
-from core.globals import BASE_DIR, FILES_DIR
+from core.globals import BASE_DIR, FILES_DIR, PROCESSING_STRATEGY
 from core.logger import init_logger, info
 from core.app import App
 from core.repositories.repo_files import FilesRepository
@@ -24,7 +24,9 @@ def main():
 
     watchdog_worker = spawn_worker_watchdog(FILES_DIR, files_repository)
     doc_e_worker = spawn_worker_doc_extractor(files_repository)
-    doc_p_worker = spawn_worker_doc_processor(files_repository)
+    doc_p_worker = spawn_worker_doc_processor(
+        files_repository, PROCESSING_STRATEGY
+    )
 
     app = App(
         files_repository,

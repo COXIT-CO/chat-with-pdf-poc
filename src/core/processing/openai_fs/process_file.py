@@ -67,6 +67,7 @@ def process_single_file(
     """Process a single file through the entire pipeline."""
     info(f"Processing file: {file.file_name_orig} STATUS={file.processing_status}")
     file.processing_status = "processing"
+    ctx.files_repository.update_file_sync(file.file_name, file)
 
     ts_process_single_file = time.time()
 
