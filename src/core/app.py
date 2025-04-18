@@ -35,7 +35,7 @@ class App(FastAPI):
             allow_methods=["*"],
             allow_headers=["*"],
         )
-        self.add_middleware(NoCacheMiddleware)  # type: ignore[arg-type]
+        # self.add_middleware(NoCacheMiddleware)  # type: ignore[arg-type]
 
     async def _startup_events(self):
         self.http_session = aiohttp.ClientSession()
@@ -61,8 +61,8 @@ class App(FastAPI):
         ]
 
 
-class NoCacheMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request, call_next):
-        response = await call_next(request)
-        response.headers["Cache-Control"] = "no-cache"
-        return response
+# class NoCacheMiddleware(BaseHTTPMiddleware):
+#     async def dispatch(self, request, call_next):
+#         response = await call_next(request)
+#         response.headers["Cache-Control"] = "no-cache"
+#         return response

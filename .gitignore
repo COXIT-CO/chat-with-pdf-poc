@@ -1,0 +1,22 @@
+*venv
+*.pyc
+.env*
+!.env.example
+.coverage
+coverage.txt
+htmlcov
+emails
+logs
+data
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+nats/nats
+.idea
+.DS_Store
+
+files
+db
+telemetry
+src/chat_with_pdf_poc.egg-info

@@ -34,7 +34,7 @@ class TeleItemStatus(Enum):
     FAILURE = "failure"
 
 
-type TeleItem = Union[TeleWProcessor]
+TeleItem = Union['TeleWProcessor']
 
 
 class TeleWProcessor(BaseModel):
