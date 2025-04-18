@@ -9,7 +9,9 @@ from urllib.parse import unquote
 
 import aiofiles
 
-from fastapi import APIRouter, Response, Request, status
+from fastapi import APIRouter, Request, status
+from fastapi.responses import JSONResponse
+
 from pydantic import BaseModel, Field
 
 from core.globals import FILES_DIR
@@ -268,7 +270,7 @@ class FilesRouter(APIRouter):
 
         resp = await self._files_repository.create_file(file)
         if resp:
-            return Response(status_code=201, content={"message": "added record of file in DB"})
+            return JSONResponse(status_code=201, content={"message": "added record of file in DB"})
         else:
             return error_constructor(
                 message="Failed to add record of file in database",
@@ -296,7 +298,8 @@ class FilesRouter(APIRouter):
         """
         resp = await self._files_repository.delete_file(post.file_name)
         if resp:
-            return Response(status_code=200, content={"message": "record of file deleted"})
+            content = {"message": "record of file deleted"}
+            return JSONResponse(status_code=200, content=content)
         else:
             return error_constructor(
                 message="Failed to delete record of file",
@@ -327,8 +330,9 @@ class FilesRouter(APIRouter):
                 files = await self._files_repository.get_files_by_filter("user_id = ?", (post.user_id,))
             else:
                 files = await self._files_repository.get_all_files()
-
-            return FilesListResponse(files=files)
+            return FilesListResponse(
+                files=[FileResponse(**f.model_dump()) for f in files]
+            )
         except Exception as e:
             return error_constructor(
                 message=f"An error occurred while retrieving files: {e}",

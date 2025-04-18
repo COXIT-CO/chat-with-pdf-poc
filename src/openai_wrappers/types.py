@@ -3,9 +3,6 @@ from typing import Union, List, Optional, Any, Literal
 from pydantic import BaseModel
 
 
-type ChatMessage = Union[ChatMessageSystem, ChatMessageUser, ChatMessageAssistant, ChatMessageTool]
-
-
 class ChatMessageContentItemDocSearch(BaseModel):
     paragraph_id: str
     text: str
@@ -79,3 +76,6 @@ class ChatMessageAssistant(ChatMessageBase):
 class ChatMessageTool(ChatMessageBase):
     role: Literal["tool"]
     tool_call_id: Optional[str] = None
+
+
+ChatMessage = Union[ChatMessageSystem, ChatMessageUser, ChatMessageAssistant, ChatMessageTool]
