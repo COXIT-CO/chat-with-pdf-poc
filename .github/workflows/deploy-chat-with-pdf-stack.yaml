@@ -34,6 +34,7 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          DEFAULT_MCPL_SERVERS: "[\"http://chat-with-pdf-poc:8011/v1\"]"
 
         run: docker compose -f docker-compose-stack.yaml up -d --build
 
