@@ -1,0 +1,52 @@
+name: Try Deploy and Evaluate Chat-with-PDF
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-chat-with-pdf:
+    uses: ./.github/workflows/reusable-chat-with-pdf-deployment.yaml
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+  run-evaluation:
+    needs: deploy-chat-with-pdf
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run evaluation script and wait for completion
+        run: |
+          docker exec docs_mcp bash -c "python src/evaluation/main.py --dataset /app/assets/datasets/dataset-example --eval_details pass"
+          echo "Evaluation completed successfully!"
+
+      - name: Collect evaluation results
+        run: |
+          # Get the latest evaluation directory
+          LATEST_EVAL_DIR=$(docker exec docs_mcp bash -c "ls -d /app/evaluations/* | sort -n | tail -1")
+          
+          # Create a local directory to store the results
+          mkdir -p evaluation_results
+          
+          # Copy the overall analysis
+          docker cp docs_mcp:$LATEST_EVAL_DIR/analysis_overall.md ./evaluation_results/
+
+      - name: Display evaluation summary
+        run: |
+          echo "## Evaluation Summary" >> $GITHUB_STEP_SUMMARY
+          
+          # Add overall analysis to the summary
+          if [ -f "./evaluation_results/analysis_overall.md" ]; then
+            cat "./evaluation_results/analysis_overall.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Overall analysis file not found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload evaluation results as artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: evaluation-results
+          path: evaluation_results/
+          retention-days: 1

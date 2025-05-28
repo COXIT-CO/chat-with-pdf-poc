@@ -1,7 +1,23 @@
-name: Deploy Chat-with-PDF Stack
+name: Reusable Chat-with-PDF Stack Deployment
 
 on:
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      wait_time:
+        description: 'Time to wait for services to be ready (in seconds)'
+        required: false
+        type: number
+        default: 60
+      default_mcpl_servers:
+        description: 'Default MCPL servers list'
+        required: false
+        type: string
+        default: '["http://chat-with-pdf-poc:8011/v1"]'
+    secrets:
+      OPENAI_API_KEY:
+        required: true
+      OPENROUTER_API_KEY:
+        required: true
 
 jobs:
   deploy:
@@ -34,12 +50,11 @@ jobs:
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          DEFAULT_MCPL_SERVERS: "[\"http://chat-with-pdf-poc:8011/v1\"]"
-
+          DEFAULT_MCPL_SERVERS: ${{ inputs.default_mcpl_servers }}
         run: docker compose -f docker-compose-stack.yaml up -d --build
 
       - name: Wait for services to be ready
-        run: sleep 60
+        run: sleep ${{ inputs.wait_time }}
 
       - name: Check if services are running
         working-directory: ./chat-with-pdf-stack
