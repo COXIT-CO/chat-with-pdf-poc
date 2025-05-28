@@ -1,0 +1,50 @@
+name: Deploy Chat-with-PDF Stack
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Create directory for chat-with-pdf-stack
+        run: mkdir -p chat-with-pdf-stack && cd chat-with-pdf-stack
+
+      - name: Clone required repositories
+        working-directory: ./chat-with-pdf-stack
+        run: |
+          git clone https://github.com/valaises/llm-chat.git
+          git clone https://github.com/valaises/llm-proxy.git
+          git clone https://github.com/valaises/llm-tools-server.git
+          git clone -b eval https://github.com/COXIT-CO/chat-with-pdf-poc.git
+
+      - name: Copy docker-compose file
+        working-directory: ./chat-with-pdf-stack
+        run: cp chat-with-pdf-poc/docker-compose-stack.yaml docker-compose-stack.yaml
+
+      - name: Start Docker Compose stack
+        working-directory: ./chat-with-pdf-stack
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+
+        run: docker compose -f docker-compose-stack.yaml up -d --build
+
+      - name: Wait for services to be ready
+        run: sleep 60
+
+      - name: Check if services are running
+        working-directory: ./chat-with-pdf-stack
+        run: docker compose -f docker-compose-stack.yaml ps
+
+      - name: Print service logs (if needed for debugging)
+        if: ${{ always() }}
+        working-directory: ./chat-with-pdf-stack
+        run: docker compose -f docker-compose-stack.yaml logs
