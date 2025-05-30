@@ -1,14 +1,7 @@
 [project]
 name = "chat-with-pdf-poc"
 
-# Use alpha (a) for early internal testing
-# Use beta (b) for wider testing when features are complete
-# Use release candidates (rc) for final pre-release testing
-# Use .devN for dev release
-# Use +experimental for experimental builds
-# Use incrementing numbers after each identifier
-
-version = "0.1.1a"
+version = "1.0.0-alpha"
 
 description = "Add your description here"
 readme = "README.md"
@@ -17,6 +10,7 @@ dependencies = [
     "aiofiles>=24.1.0",
     "aiohttp>=3.11.14",
     "fastapi>=0.115.11",
+    "markdown>=3.8",
     "more-itertools>=10.6.0",
     "numba>=0.61.2",
     "numpy>=2.2.4",
@@ -25,7 +19,9 @@ dependencies = [
     "pymupdf>=1.25.4",
     "pymupdf-fonts",
     "pymupdf4llm>=0.0.17",
+    "pyyaml>=6.0.2",
     "redis>=5.2.1",
+    "rich>=14.0.0",
     "scalar-fastapi>=1.0.3",
     "termcolor>=2.5.0",
     "ujson>=5.10.0",
@@ -38,6 +34,7 @@ dependencies = [
 [tool.uv.workspace]
 members = [
     "src/core",
+    "src/evaluation",
     "src/extraction",
     "src/openai_wrappers",
     "src/processing",
@@ -47,6 +44,7 @@ members = [
 
 [tool.uv.sources]
 core = { workspace = true }
+evaluation = { workspace = true }
 extraction = { workspace = true }
 openai_wrappers = { workspace = true }
 processing = { workspace = true }

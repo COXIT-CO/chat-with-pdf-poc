@@ -53,8 +53,6 @@ def process_single_file(ctx: WorkerContext, file: FileItem) -> None:
         ).write(ctx.tele)
         return
 
-    jsonl_vec = (jsonl_file_path.parent / jsonl_file_path.stem).with_suffix(".vec.jsonl")
-
     t0 = time.time()
 
     try:
@@ -62,7 +60,6 @@ def process_single_file(ctx: WorkerContext, file: FileItem) -> None:
             ctx,
             file,
             jsonl_file_path,
-            jsonl_vec,
             processed_paragraphs,
         ))
     except Exception as e:

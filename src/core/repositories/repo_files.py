@@ -275,7 +275,6 @@ class FilesRepository(AbstractRepository):
         """
         return await self._run_in_thread(self.get_all_files_sync)
 
-
     async def update_file(self, file_name: str, file_item: FileItem) -> bool:
         """
         Async version of update_file_sync.
@@ -300,3 +299,24 @@ class FilesRepository(AbstractRepository):
             success = await repo.update_file("document.pdf", updated_file)
         """
         return await self._run_in_thread(self.update_file_sync, file_name, file_item)
+
+    def delete_user_files_sync(self, user_id: int) -> int:
+        """
+        Remove all files belonging to a specific user.
+
+        Args:
+            user_id: The ID of the user whose files should be deleted
+
+        Returns:
+            Number of files removed
+        """
+        with self._get_db_connection() as conn:
+            try:
+                cursor = conn.execute(
+                    "DELETE FROM user_files WHERE user_id = ?",
+                    (user_id,)
+                )
+                conn.commit()
+                return cursor.rowcount
+            except sqlite3.Error:
+                return 0

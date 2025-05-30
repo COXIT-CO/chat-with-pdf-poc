@@ -1,0 +1,154 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.4;
+    color: #333;
+    background-color: #f2f2f7;
+    margin: 0;
+    padding: 12px;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+h1 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+    font-weight: 500;
+    font-size: 24px;
+}
+
+.experiments-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.experiment-card {
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    padding: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.experiment-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.experiment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.experiment-id {
+    font-weight: 600;
+    font-size: 15px;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+.status-indicator {
+    margin-left: 8px;
+    font-size: 16px;
+}
+
+.dataset-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(0, 0, 0, 0.7);
+}
+
+.experiment-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.experiment-date {
+    font-size: 12px;
+    color: #888;
+}
+
+.completion-time {
+    font-size: 12px;
+    color: #666;
+    display: flex;
+    align-items: center;
+    background-color: #f5f5f7;
+    padding: 2px 8px;
+    border-radius: 12px;
+}
+
+.completion-emoji {
+    margin-right: 4px;
+}
+
+.experiment-description {
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #555;
+}
+
+.experiment-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: auto;
+}
+
+.experiment-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+    color: #666;
+}
+
+.detail-item {
+    background-color: #f5f5f7;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.detail-label {
+    font-weight: 500;
+    color: #888;
+    margin-right: 4px;
+}
+
+.metrics-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.metric-item {
+    background-color: #f0f7ff;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+footer {
+    text-align: center;
+    margin-top: 20px;
+    color: #888;
+    font-size: 12px;
+    padding: 10px 0;
+}

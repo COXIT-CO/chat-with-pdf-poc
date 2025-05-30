@@ -13,7 +13,7 @@ from vectors.search.search_utils import create_query_embedding
 
 
 async def search_milvus(
-        loop: asyncio.BaseEventLoop,
+        loop: asyncio.AbstractEventLoop,
         openai_client: openai.OpenAI,
         milvus_repo: MilvusRepository,
         document: FileItem,

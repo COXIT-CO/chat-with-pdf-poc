@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.cors import CORSMiddleware
 
-from core.globals import PROCESSING_STRATEGY, SAVE_STRATEGY
 from core.repositories.repo_files import FilesRepository
+from core.routers.router_experiments import ExperimentsRouter
 from vectors.repositories.repo_milvus import MilvusRepository
 from vectors.repositories.repo_redis import RedisRepository
 from core.routers.router_base import BaseRouter
@@ -76,6 +76,7 @@ class App(FastAPI):
             FilesRouter(
                 self.files_repository,
             ),
+            ExperimentsRouter(),
         ]
 
 

@@ -29,7 +29,7 @@ async def vector_search_chat_messages(
 
     if PROCESSING_STRATEGY == "openai_fs":
         future = search_openai(
-            ctx.http_session, tool_name, document, query
+            loop, ctx.http_session, tool_name, document, query
         )
 
     elif PROCESSING_STRATEGY == "local_fs":

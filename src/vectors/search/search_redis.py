@@ -12,7 +12,7 @@ from vectors.search.search_utils import create_query_embedding
 
 
 async def search_redis(
-        loop: asyncio.BaseEventLoop,
+        loop: asyncio.AbstractEventLoop,
         openai_client: openai.OpenAI,
         redis_repo: RedisRepository,
         document: FileItem,

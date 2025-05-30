@@ -2,14 +2,13 @@
 
 A standalone server that allows users to upload PDF documents and after documents are parsed and processed, users are able to call `/v1/tools-execute`, passing a conversation with pending tool calls. Server answers tool calls, producing new Messages with Results: RAG Messages, Helper Messages, or Text Messages.
 
-
-Please, visit http://HOSTNAME/docs to access the API documentation
+Please, visit http://localhost:8011/docs to access the API documentation
 All models that endpoints accept or output, are also available.
 Documentation is always up-to-date as it's generated on APP's startup.
 
 Hint: in documentation "tick" show Response Schema. If it's too long to read: copy-paste to LLM and ask it to create structures in your language/library
 
-Alternatively, RAW OpenAPI documentation can be accessed at http://HOSTNAME/v1/openapi.json -- Useful for alternative API Clients: Yaak, Postman, etc.
+Alternatively, RAW OpenAPI documentation can be accessed at http://localhost/v1/openapi.json -- Useful for alternative API Clients: Yaak, Postman, etc.
 ## Overview
 
 This application provides a complete pipeline for:
@@ -18,65 +17,97 @@ This application provides a complete pipeline for:
 3. Processing the extracted content, uploading to OpenAI's File and Vector Store APIs.
 4. Providing an API interface to List and Execute Tools
 
-## Roadmap TBD
-- [ ] Sentence / Smaller parts then paragraphs Highlights (without coords) (~Easy-Moderate)
-- [ ] RAG re-ranking (with OR without summarizations) (~Moderate)
-- [ ] Documents' summarization pipeline (~Moderate)
-- [ ] Other Document Storing Options -- e.g. S3 API (~Moderate)
-- [ ] Better PDF object detection using CV Model (~Difficult, Research needed)
-- [ ] Non-text PDFs support using CV model for OD, then extraction of text using OCR (~Moderate, after CV Model implemented)
-- [ ] Questions about Drawings (~Difficult-Very Difficult, after CV Model implemented)
-
-## Project Structure
-
-```
-chat-with-pdf-poc/
-├── .env.example           # Example structure of ENV variables
-├── Dockerfile             # Docker configuration
-├── docker-compose.yaml    # Docker Compose configuration
-├── README.md              # Project documentation
-├── pyproject.toml         # Python project configuration
-└── src/                   # Source code
-    ├── core/              # Core application components
-    │   ├── app.py         # FastAPI application setup
-    │   ├── args.py        # Command line argument parsing
-    │   ├── globals.py     # Global constants and settings
-    │   ├── logger.py      # Logging configuration
-    │   ├── main.py        # Application entry point
-    │   ├── server.py      # Server configuration
-    │   ├── repositories/  # Data access layer
-    │   │   ├── repo_abstract.py  # Abstract repository base class
-    │   │   └── repo_files.py     # File metadata storage and retrieval
-    │   ├── routers/       # API endpoints
-    │   │   ├── router_base.py    # Base router functionality
-    │   │   ├── router_files.py   # File management endpoints
-    │   │   ├── router_mcpl.py    # Model Context Protocol endpoints
-    │   │   └── schemas.py        # API request/response schemas
-    │   ├── tools/         # Tool implementations for MCPL
-    │   │   ├── tool_context.py   # Context management for tools
-    │   │   ├── tool_list_files.py # File listing tool
-    │   │   ├── tool_search_in_file.py # File search tool
-    │   │   └── tools.py          # Tool registration and management
-    │   └── workers/       # Background processing workers
-    │       ├── w_abstract.py     # Abstract worker base class
-    │       ├── w_extractor.py    # PDF text extraction worker
-    │       ├── w_processor.py    # PDF Text processing worker -- uploads to OpenAI
-    │       └── w_utils.py        # Utility functions for workers
-    ├── coxit/
-    │   └── extractor/     # PDF text extraction components
-    │       └── ...
-    └── openai_wrappers/   # OpenAI API wrappers
-        ├── api_files.py   # OpeanAI's File API wrappers
-        ├── api_vector_store.py # OpenAI's Vector store API wrappers
-        ├── types.py       # Type definitions
-        └── utils.py       # Utility functions
-```
 ## Features
 
 - **File Management**: Upload, list, and delete PDF files
 - **Asynchronous Processing**: Background workers handle resource-intensive tasks
 - **Vector Search**: Semantic search capabilities using OpenAI's vector stores
 - **Stateful Processing**: Track processing status of documents from upload to completion
+
+## Installation
+
+Download docker-compose-stack.yaml
+```bash
+wget -O docker-compose-stack.yaml https://raw.githubusercontent.com/COXIT-CO/chat-with-pdf-poc/refs/heads/main/docker-compose-stack.yaml
+```
+
+Set in your environment following variables:\
+OPENAI_API_KEY and OPENROUTER_API_KEY
+
+[read more about openrouter](https://openrouter.ai/docs/faq) -- a unified API interface to LLMs
+
+verify that:
+```sh
+printenv | grep -E 'OPENAI_API_KEY|OPENROUTER_API_KEY'
+```
+
+Start docker compose
+```bash
+docker compose -f docker-compose-stack.yaml up -d
+```
+
+## Installation, Dev
+
+Clone repository 
+```bash
+git clone -b eval https://github.com/COXIT-CO/chat-with-pdf-poc.git
+```
+
+cd into directory
+```sh
+cd chat-with-pdf-poc
+```
+
+Set in your environment following variables:\
+OPENAI_API_KEY and OPENROUTER_API_KEY
+
+[read more about openrouter](https://openrouter.ai/docs/faq) -- a unified API interface to LLMs
+
+verify that:
+```sh
+printenv | grep -E 'OPENAI_API_KEY|OPENROUTER_API_KEY'
+```
+
+Start docker compose
+```bash
+docker compose -f docker-compose-stack-dev.yaml up -d
+```
+
+### Specify Endpoints & API KEY in Chat UI
+
+In your browser open: [http://localhost:5173](http://localhost:5173)
+Click on settings, and specify:
+#### Section: Connections
+API Endpoint: http://localhost:7016/v1
+
+API KEY: admin1234
+#### Section: MCPL Servers
+Add Server: http://chat-with-pdf-poc:8011/v1
+
+### Head back to Chat
+
+Head back to chat and on "Select Model" select model e.g. gpt-4o
+
+Make a test request: "what documents do I have"?
+
+Expected output:
+
+![img.png](Drawings/WhatDocsDoIHave.png)
+
+Telescope Emoji + Tool Name -- means model decided to call tool "Tool Name"
+
+PaperClip Emoji + Tool Name -- means tool call of tool "Tool Name" is completed and results are attached to the chat
+
+Hint: click on those elements to expand them, and view their internals
+
+## Evaluation
+
+Evaluation has a dedicated [README.md](https://github.com/COXIT-CO/chat-with-pdf-poc/tree/eval/src/evaluation)
+
+## Access Evaluation Results in GUI
+
+visit http://localhost:8011/v1/experiments to access interactive view format for finished evaluations
+![img.png](Drawings/v1_experiments.png)
 
 ## Technical Details
 
@@ -146,31 +177,12 @@ Files progress through these statuses:
 - `"complete"`: Fully processed
 - `"error: [message]"`: An error occurred during processing
 
-## Getting Started
 
-### Prerequisites
-* Git
-* Docker runtime support
-* OPENAI_API_KEY
-
-### Installation
-
-1. Clone the repository
-```bash
-git clone git@github.com:COXIT-CO/chat-with-pdf-poc.git
-cd chat-with-pdf-poc
-```
-
-#### Copy the example environment file and edit it
-```bash
-cp .env.example .env
-```
-#### Build and run with Docker Compose
-```bash
-docker-compose up --build -d
-```
-
-## Integration
-To integrate MCPL Server into an Application, use following architecture:
-
-![integrate-mcpl-server.jpg](Drawings/integrate-mcpl-server.png)
+## Roadmap TBD
+- [ ] Sentence / Smaller parts then paragraphs Highlights (without coords) (~Easy-Moderate)
+- [ ] RAG re-ranking (with OR without summarizations) (~Moderate)
+- [ ] Documents' summarization pipeline (~Moderate)
+- [ ] Other Document Storing Options -- e.g. S3 API (~Moderate)
+- [ ] Better PDF object detection using CV Model (~Difficult, Research needed)
+- [ ] Non-text PDFs support using CV model for OD, then extraction of text using OCR (~Moderate, after CV Model implemented)
+- [ ] Questions about Drawings (~Difficult-Very Difficult, after CV Model implemented)

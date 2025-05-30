@@ -1,0 +1,66 @@
+name: Try Deploy and Evaluate Chat-with-PDF
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'assets/datasets/dataset-example/**'
+      - 'src/evaluation/**'
+
+jobs:
+  run-evaluation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Start Docker Compose stack
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: docker compose -f docker-compose-stack-dev.yaml up -d
+
+      - name: Wait for services to be ready
+        run: sleep 60
+
+      - name: Check if services are running
+        run: docker compose -f docker-compose-stack-dev.yaml ps
+
+      - name: Run evaluation script and wait for completion
+        run: |
+          docker exec docs-mcp bash -c "python src/evaluation/main.py --dataset /app/assets/datasets/dataset-example --eval_details pass"
+          echo "Evaluation completed successfully!"
+
+      - name: Collect evaluation results
+        run: |
+          # Get the latest evaluation directory
+          LATEST_EVAL_DIR=$(docker exec docs-mcp bash -c "ls -d /app/evaluations/* | sort -n | tail -1")
+          echo "LATEST_EVAL_DIR=${LATEST_EVAL_DIR}" >> $GITHUB_ENV
+          
+          # Create a local directory to store the results
+          mkdir -p evaluation_results
+          
+          # Copy all files from the latest evaluation directory
+          docker cp docs-mcp:${LATEST_EVAL_DIR}/. ./evaluation_results/
+
+      - name: Display evaluation summary
+        run: |
+          echo "## Evaluation Summary" >> $GITHUB_STEP_SUMMARY
+          
+          # Add overall analysis to the summary
+          if [ -f "./evaluation_results/analysis_overall.md" ]; then
+            cat "./evaluation_results/analysis_overall.md" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Overall analysis file not found." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload evaluation results as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation-results
+          path: ./evaluation_results/
+          retention-days: 1

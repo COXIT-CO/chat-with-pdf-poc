@@ -1,0 +1,22 @@
+[
+  "What is the main topic of the research paper?",
+  "Who are the authors of this article? List at least five of them.",
+  "What are the two benchmarks introduced in this paper to verify the agreement between LLM judges and human preferences?",
+  "What is MT-Bench specifically designed for?",
+  "How does Chatbot Arena work?",
+  "According to the abstract, what percentage of agreement can strong LLM judges like GPT-4 achieve with human preferences?",
+  "What are the three types of biases of LLM-as-a-judge mentioned in the abstract?",
+  "What is a proposed solution or approach mentioned in the paper to mitigate the limitations of LLM-as-a-judge?",
+  "What is 'LLM-as-a-Judge'?",
+  "What are the limitations of existing benchmarks for evaluating LLM-based chat assistants, according to the paper?",
+  "Which LLM is highlighted as a strong LLM judge in the paper?",
+  "What does the paper conclude about the scalability and explainability of using LLM-as-a-judge?",
+  "How does the paper suggest that their new benchmarks and traditional benchmarks relate to each other?",
+  "What is 'position bias' in the context of LLM-as-a-judge?",
+  "What is 'verbosity bias' as discussed in the paper?",
+  "What is 'self-enhancement bias' when using LLMs as judges?",
+  "What does the paper say about the reasoning ability of LLM judges?",
+  "What was the agreement level found between humans, as mentioned in the abstract?",
+  "The paper mentions that LLM-as-a-judge is a way to approximate human preferences. What is the main advantage of this approximation compared to obtaining direct human preferences?",
+  "What is the arXiv ID and version of this paper?"
+]

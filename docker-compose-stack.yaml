@@ -1,0 +1,101 @@
+services:
+  llm-chat:
+    image: oasis4691/llm-chat:0.1.2
+    container_name: llm-chat
+    volumes:
+      - ./llm-chat:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    networks:
+      - llm-network
+
+  llm-portal:
+    image: oasis4691/llm-portal:0.1.2
+    container_name: llm-portal
+    environment:
+      - LLM_PROXY_SECRET="secret"
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+
+      - ADMIN_EMAIL=admin@default.com
+      - ADMIN_API_KEY=admin1234
+    ports:
+      - "7012:7012"
+    volumes:
+      - llm-portal-db-volume:/app/db
+    restart: unless-stopped
+    networks:
+      - llm-network
+
+  llm-tools-server:
+    image: oasis4691/llm-tools-server:0.2.1
+    container_name: llm-tools
+    environment:
+      # don't change
+      - LLM_PROXY_ADDRESS=http://llm-portal:7012/v1
+      # don't change
+      - DEFAULT_MCPL_SERVERS=${DEFAULT_MCPL_SERVERS:-[]}
+    ports:
+      - "7016:7016"
+    volumes:
+      - ./logs/llm-tools:/app/logs
+      - llm-tool-db-volume:/app/db
+      - shared-files-volume:/app/uploads
+    restart: unless-stopped
+    networks:
+      - llm-network
+
+  chat-with-pdf-poc:
+    image: coxit/chat-with-pdf-poc:latest
+    container_name: docs-mcp
+    environment:
+      # for embeddings
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # openai_fs or local_fs
+      - PROCESSING_STRATEGY=local_fs
+      # only for local_fs: redis or milvus, else -> ""
+      - SAVE_STRATEGY=redis
+      # only for local_fs
+      - EMBEDDING_MODEL=text-embedding-3-small
+
+      - EVAL_CHAT_ENDPOINT=http://llm-tools:7016/v1
+      - EVAL_CHAT_ENDPOINT_API_KEY=admin1234
+
+    ports:
+      - "8011:8011"
+    volumes:
+      - ./chat-with-pdf/telemetry:/app/telemetry
+      - ./chat-with-pdf/configs:/app/configs
+      - ./logs/chat-with-pdf:/app/logs
+      - ./chat-with-pdf/evaluations:/app/evaluations
+      - ./chat-with-pdf/datasets:/app/datasets
+      - shared-files-volume:/app/files
+      - chat-with-pdf-db-volume:/app/db
+    restart: unless-stopped
+    networks:
+      - llm-network
+    depends_on:
+      - redis
+
+  redis:
+    image: "redis/redis-stack:latest"
+    container_name: "coxit_docs_redis"
+    expose:
+      - "6379"
+    volumes:
+      - redis-data-volume:/data
+    restart: unless-stopped
+    networks:
+      - llm-network
+
+networks:
+  llm-network:
+    driver: bridge
+
+volumes:
+  llm-portal-db-volume:
+  llm-tool-db-volume:
+  chat-with-pdf-db-volume:
+  shared-files-volume:
+  redis-data-volume:

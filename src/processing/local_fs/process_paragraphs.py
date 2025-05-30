@@ -118,7 +118,6 @@ async def process_file_paragraphs(
         ctx: WorkerContext,
         file: FileItem,
         jsonl_file_path: Path,
-        jsonl_vec: Path,
         processed_paragraphs: Set[str],
 ):
     t0 = ctx.loop.time()

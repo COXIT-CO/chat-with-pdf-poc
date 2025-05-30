@@ -13,7 +13,7 @@ from openai_wrappers.types import ChatMessageContentItemDocSearch
 
 
 async def search_openai(
-        loop: asyncio.BaseEventLoop,
+        loop: asyncio.AbstractEventLoop,
         http_session: ClientSession,
         tool_name: str,
         document: FileItem,

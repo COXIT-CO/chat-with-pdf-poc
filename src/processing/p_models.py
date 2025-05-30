@@ -31,5 +31,5 @@ class ParagraphVectorData(BaseModel):
 class WorkerContext:
     client: OpenAI
     loop: asyncio.AbstractEventLoop
-    tele: TeleWriter
-    files_repository: FilesRepository
+    tele: Optional[TeleWriter] = None # optional for eval
+    files_repository: Optional[FilesRepository] = None # optional for eval

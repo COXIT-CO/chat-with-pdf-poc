@@ -2,7 +2,8 @@ import asyncio
 
 import uvloop
 
-from core.globals import BASE_DIR, FILES_DIR, SAVE_STRATEGY, PROCESSING_STRATEGY
+from core.configs import EvalConfig
+from core.globals import FILES_DIR, SAVE_STRATEGY, PROCESSING_STRATEGY, DB_DIR
 from core.logger import init_logger, info
 from core.app import App
 from core.repositories.repo_files import FilesRepository
@@ -19,10 +20,11 @@ def main():
     init_logger(True)
     info("Logger initialized")
 
-    db_dir = BASE_DIR / "db"
-    db_dir.mkdir(parents=True, exist_ok=True)
+    eval_config = EvalConfig()
+    if not eval_config.exists():
+        eval_config.save_to_disk()
 
-    files_repository = FilesRepository(db_dir / "files.db")
+    files_repository = FilesRepository(DB_DIR / "files.db")
     redis_repository = None
     milvus_repository = None
 
@@ -31,7 +33,7 @@ def main():
         redis_repository.connect()
 
     elif PROCESSING_STRATEGY == "local_fs" and SAVE_STRATEGY == "milvus":
-        milvus_repository = MilvusRepository(db_dir / "milvus.db")
+        milvus_repository = MilvusRepository(DB_DIR / "milvus.db")
 
     watchdog_worker = spawn_worker_watchdog(FILES_DIR, files_repository)
     doc_e_worker = spawn_worker_doc_extractor(files_repository)
@@ -66,7 +68,7 @@ def main():
     server = Server(
         app=app,
         host="0.0.0.0",
-        port=8011, # todo: use env values
+        port=8011,
         workers=[
             watchdog_worker,
             doc_e_worker,

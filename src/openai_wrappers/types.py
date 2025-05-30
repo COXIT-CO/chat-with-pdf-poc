@@ -6,6 +6,28 @@ from pydantic import BaseModel
 type ChatMessage = Union[ChatMessageSystem, ChatMessageUser, ChatMessageAssistant, ChatMessageTool]
 
 
+def model_validate_chat_message(obj: Union[Dict[str, Any], BaseModel]) -> ChatMessage:
+    """Validate and convert a dictionary or model to a ChatMessage."""
+    if isinstance(obj, (ChatMessageSystem, ChatMessageUser, ChatMessageAssistant, ChatMessageTool)):
+        return obj
+
+    if not isinstance(obj, dict):
+        obj = obj.model_dump()
+
+    role = obj.get("role")
+
+    if role in ["system", "developer"]:
+        return ChatMessageSystem.model_validate(obj)
+    elif role == "user":
+        return ChatMessageUser.model_validate(obj)
+    elif role == "assistant":
+        return ChatMessageAssistant.model_validate(obj)
+    elif role == "tool":
+        return ChatMessageTool.model_validate(obj)
+    else:
+        raise ValueError(f"Unknown role: {role}")
+
+
 class ChatToolParameterProperty(BaseModel):
     type: str
     description: str

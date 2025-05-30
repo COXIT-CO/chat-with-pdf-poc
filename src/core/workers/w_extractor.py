@@ -4,13 +4,29 @@ import threading
 from pathlib import Path
 
 from core.globals import FILES_DIR
-from core.logger import info
-from core.repositories.repo_files import FilesRepository
+from core.logger import info, error
+from core.repositories.repo_files import FilesRepository, FileItem
 from core.workers.w_abstract import Worker
 from extraction.pdf_extractor.file_reader import FileReader
 
 
 VISUALIZE = False
+
+
+def get_file_paragraphs(file: FileItem, file_path: Path, visualize: bool = False):
+    if not file_path.is_file():
+        raise Exception(f"file is missing on disk: {file_path}")
+
+    with file_path.open("rb") as f:
+        file_content = f.read()
+
+    file_reader = FileReader(file_content, file.file_name_orig)
+    extracted_paragraphs = file_reader.extract_paragraphs(visualize=visualize)
+
+    if not extracted_paragraphs:
+        raise Exception(f"no paragraphs extracted from file: {file_path}")
+
+    return extracted_paragraphs
 
 
 def worker(
@@ -50,19 +66,12 @@ def worker(
             info(f"Extracting file: {file.file_name_orig}")
             file_path: Path = FILES_DIR.joinpath(file.file_name)
 
-            if not file_path.is_file():
-                file.processing_status = f"Error: file is missing on disk"
-                stats_repository.update_file_sync(file.file_name, file)
-                continue
-
-            with file_path.open("rb") as f:
-                file_content = f.read()
-
-            file_reader = FileReader(file_content, file.file_name_orig)
-            extracted_paragraphs = file_reader.extract_paragraphs(visualize=VISUALIZE)
-
-            if not extracted_paragraphs:
-                file.processing_status = "Error: no paragraphs extracted"
+            try:
+                extracted_paragraphs = get_file_paragraphs(file, file_path, visualize=VISUALIZE)
+            except Exception as e:
+                err = f"Error extracting file: {str(e)}"
+                error(err)
+                file.processing_status = err
                 stats_repository.update_file_sync(file.file_name, file)
                 continue
 
