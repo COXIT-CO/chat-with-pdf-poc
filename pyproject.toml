@@ -25,6 +25,7 @@ dependencies = [
     "pymupdf>=1.25.4",
     "pymupdf-fonts",
     "pymupdf4llm>=0.0.17",
+    "requests>=2.32.3",
     "scalar-fastapi>=1.0.3",
     "termcolor>=2.5.0",
     "ujson>=5.10.0",

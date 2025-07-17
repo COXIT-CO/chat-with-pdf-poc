@@ -13,8 +13,10 @@ from openai_wrappers.types import (
     ToolCall, ChatMessage,
     ChatMessageContentItemDocSearch
 )
-from chat_tools.chat_models import (ChatTool,
-    ChatToolFunction, ChatToolParameters,
+from chat_tools.chat_models import (
+    ChatTool,
+    ChatToolFunction,
+    ChatToolParameters,
     ChatToolParameterProperty
 )
 
