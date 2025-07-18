@@ -3,7 +3,6 @@ services:
     image: oasis4691/llm-chat:0.1.2
     container_name: llm-chat
     volumes:
-      - ./llm-chat:/app
       - /app/node_modules
     ports:
       - "5173:5173"
@@ -24,6 +23,7 @@ services:
       - "7012:7012"
     volumes:
       - llm-portal-db-volume:/app/db
+      - ./llm-portal-config/model_list.json:/app/models/model_list.json:ro  # <-- ADD THIS LINE
     restart: unless-stopped
     networks:
       - llm-network

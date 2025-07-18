@@ -30,6 +30,7 @@ async def golden_answers_worker(
         eval_config: EvalConfig,
 ) -> Optional[Tuple[int, str]]:
     try:
+        info(f"EvalConfig.chat_model = {eval_config.chat_model}")
         resp = await call_chat_completions_non_streaming(
             http_session,
             messages,
