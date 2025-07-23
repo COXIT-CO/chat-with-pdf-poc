@@ -21,3 +21,7 @@ db/*
 telemetry/*
 src/chat_with_pdf_poc.egg-info
 chat-with-pdf/*
+
+assets/datasets/*
+!assets/datasets/dataset-example
+!assets/datasets/dataset-for-actions
